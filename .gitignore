@@ -1,0 +1,4 @@
+/**/*.pyc
+/**/*.log
+/**/*.mat
+/matlab_code
