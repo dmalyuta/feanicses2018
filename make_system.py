@@ -164,8 +164,8 @@ if False:
                 bbox_inches='tight', format='pdf', transparent=True)
 
 # Construct safe states (outputs) polytope
-pos_err_max = (0.5,0.1) # [m] Max tolerated (horizontal,vertical) position error
-vel_err_max = (0.5,0.01) # [m/s] Max tolerated (horizontal,vertical) velocity error
+pos_err_max = (0.1,0.1) # [m] Max tolerated (horizontal,vertical) position error
+vel_err_max = (0.1,0.01) # [m/s] Max tolerated (horizontal,vertical) velocity error
 Y = poly.Polytope(R=[(-pos_err_max[0],pos_err_max[0]),
                      (-pos_err_max[1],pos_err_max[1]),
                      (-vel_err_max[0],vel_err_max[0]),

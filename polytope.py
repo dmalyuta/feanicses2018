@@ -126,7 +126,6 @@ class Polytope:
         """
         if self.isLowerDimensional() or self.isEmpty():
             # Will not plot empty or lower-dimensional polytopes
-            print "HELLO"
             return
 
         num_coords = len(coords)

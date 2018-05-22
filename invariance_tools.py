@@ -9,6 +9,7 @@ import numpy.linalg as la
 import scipy.linalg as sla
 import cvxpy as cvx
 import matlab.engine
+import matplotlib.pyplot as plt
 
 import polytope
 
@@ -312,7 +313,7 @@ class MatlabEngineInterface:
         """
         self.meng.eval(expr,nargout=0)
     
-def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100):
+def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=None):
     """
     Compute the Maximal Controlled Robust Positively Invariant (maxCRPI) set
     for the specified system
@@ -358,6 +359,12 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100):
         cleared**.
     max_iter : int, optional
         Maximum number of iterations for the iterative algorithm.
+    cv_tol : float, optional
+        Convergence tolerance for stopping criterion for preimage set equality
+        with the target set.
+    visualize : callable, optional
+        A function which accepts X the current preimage set and, for example,
+        plots it.
     
     Returns
     -------
@@ -383,6 +390,7 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100):
     meng.mset(['A','B','D','C'],[A,B,D,C])
     meng.mset(['G','g','H','h','R','r'],[G,g,H,h,R,r])
     meng.mset(['nullC_A','nullC_b','pinvC'],[nullC_A,nullC_b,pinvC])
+    meng.meng.workspace["cv_tol"] = cv_tol
     
     # Setup MPT3 polytopes
     meng.meval("Y = Polyhedron(G,g)")
@@ -396,15 +404,23 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100):
         iter_count += 1
         if iter_count > max_iter:
             raiseError("Ran out of iterations")
-        print iter_count
-        meng.meval("pre = ((Y-((C*D)*P))+((-C*B)*U)+((-C*A)*nullC))*(C*A*pinvC)")
+        meng.meval("pre = ((Omega-((C*D)*P))+((-C*B)*U)+((-C*A)*nullC))*(C*A*pinvC)")
         meng.meval("Omega_next = pre & Omega")
-        meng.meval("stop = Omega_next==Omega")
+        meng.meval("Omega_next_noredundant = Omega_next.minHRep")
+        meng.meval("Omega_next = Omega_next.minHRep")
+        num_facets = int(meng.meng.eval("size(Omega_next.A,1)"))
+        print "%d: %d" % (iter_count, num_facets)
+        meng.meval("stop = Polyhedron(Omega_next.A,Omega_next.b+cv_tol).contains(Omega) && "
+                   "Polyhedron(Omega.A,Omega.b+cv_tol).contains(Omega_next)")
         stop = meng.meng.eval("stop")
         if stop:
             break
         else:
             meng.meval("Omega = Omega_next")
+            if visualize is not None:
+                X = polytope.Polytope(meng.mget("Omega.A"),meng.mget("Omega.b"))
+                visualize(X)
+                plt.pause(0.01)
     
     maxCRPIset = polytope.Polytope(meng.mget("Omega.A"),meng.mget("Omega.b"))
     return maxCRPIset
