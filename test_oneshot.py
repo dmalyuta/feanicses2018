@@ -19,18 +19,11 @@ import matplotlib.pyplot as plt
 
 import make_system as sys
 import invariance_tools
-import polytope
 
 matplotlib.rcParams.update({'font.size': 13})
 matplotlib.rc('text', usetex=True)
 
 np.random.seed(101)
-
-# Noise specification
-noise_amount_x = 500 # [N]
-noise_amount_y = 500 # [N]
-R = polytope.Polytope(R=[(-noise_amount_x,noise_amount_x),
-                         (-noise_amount_y,noise_amount_y)])
 
 # Generate a template for the invariant polytope
 n_extra = 0 # Number of extra random facet normals
@@ -48,14 +41,14 @@ for i in range(angles.shape[0]):
            np.sin(phi[0])*np.sin(phi[1])*np.sin(phi[2])*np.sin(phi[3])])
 G = []
 for A_cl in sys.A_cl:
-    Gi = invariance_tools.generateTemplate(A_cl,sys.B,R.P,R.p)
+    Gi = invariance_tools.generateTemplate(A_cl,sys.D,sys.R,sys.r)
     Gi = np.vstack((Gi,G_extra)) # Add the extra random facets
     G.append(Gi)
 
 # Compute the invariant sets
 X = []
 for i in range(len(sys.A_cl)):
-    X.append(invariance_tools.trodden(sys.A_cl[i],sys.B,R.P,R.p,G=G[i]))
+    X.append(invariance_tools.trodden(sys.A_cl[i],sys.D,sys.R,sys.r,G=G[i]))
 
 color = ['red','blue','green']
 fig = plt.figure(1,figsize=(7,4.5))

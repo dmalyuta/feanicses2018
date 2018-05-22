@@ -19,21 +19,11 @@ import matplotlib.pyplot as plt
 
 import make_system as sys
 import invariance_tools
-import polytope
 
 matplotlib.rcParams.update({'font.size': 13})
 matplotlib.rc('text', usetex=True)
 
 np.random.seed(101)
-
-# Noise specification
-noise_amount_x = 500 # [N]
-noise_amount_y = 500 # [N]
-R = polytope.Polytope(R=[(-noise_amount_x,noise_amount_x),
-                         (-noise_amount_y,noise_amount_y)])
-
-# Generate a template for the invariant polytope
-G = invariance_tools.generateTemplate(sys.A_cl[0],sys.B,R.P,R.p)
 
 # Compute the invariant sets
 X = []
@@ -41,7 +31,7 @@ iterative_options = [False,True]
 runtimes = []
 for i in range(len(iterative_options)):
     t = time.time()
-    X.append(invariance_tools.trodden(sys.A_cl[0],sys.B,R.P,R.p,G=G,
+    X.append(invariance_tools.trodden(sys.A_cl[0],sys.D,sys.R,sys.r,
                                       iterative=iterative_options[i]))
     elapsed = time.time()-t
     runtimes.append(elapsed)
