@@ -63,4 +63,5 @@ ax.set_ylabel('$v_y$ velocity [m/s]')
 plt.tight_layout()
 plt.show()
 
-fig.savefig('figures/oneshot_invariant_set_vs_iterative.pdf', bbox_inches='tight', format='pdf', transparent=True)
+fig.savefig('figures/feanicses_oneshot_invariant_set_vs_iterative.pdf',
+            bbox_inches='tight', format='pdf', transparent=True)

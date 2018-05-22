@@ -11,10 +11,14 @@ Author: Danylo Malyuta.
 """
 
 import matlab.engine
+import matplotlib
 import matplotlib.pyplot as plt
 
 import make_system as sys
 import invariance_tools
+
+matplotlib.rcParams.update({'font.size': 13})
+matplotlib.rc('text', usetex=True)
 
 # Startup the MATLAB engine
 try:
@@ -55,5 +59,5 @@ X_inf = invariance_tools.maxCRPI(sys.A,sys.B,sys.D,sys.C,
 
 fig = visualize(X_inf)
 
-fig.savefig('figures/maxcrpi.pdf',
+fig.savefig('figures/feanicses_maxcrpi.pdf',
             bbox_inches='tight', format='pdf', transparent=True)

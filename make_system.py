@@ -121,7 +121,8 @@ if False:
     ax.set_ylabel('Imaginary')
     ax.legend()
     plt.show()
-    fig.savefig('figures/root_locus.pdf', bbox_inches='tight', format='pdf', transparent=True)
+    fig.savefig('figures/feanicses_root_locus.pdf',
+                bbox_inches='tight', format='pdf', transparent=True)
     
 #%% Specification polytopes
 

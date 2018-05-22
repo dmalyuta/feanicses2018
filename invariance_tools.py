@@ -406,17 +406,16 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=Non
             raiseError("Ran out of iterations")
         meng.meval("pre = ((Omega-(((C*D)*P)+((C*A)*nullC)))+((-C*B)*U))*(C*A*pinvC)")
         meng.meval("Omega_next = pre & Omega")
-        meng.meval("Omega_next_noredundant = Omega_next.minHRep")
         meng.meval("Omega_next = Omega_next.minHRep")
         num_facets = int(meng.meng.eval("size(Omega_next.A,1)"))
         print "%d: %d" % (iter_count, num_facets)
         meng.meval("stop = Polyhedron(Omega_next.A,Omega_next.b+cv_tol).contains(Omega) && "
                    "Polyhedron(Omega.A,Omega.b+cv_tol).contains(Omega_next)")
+        meng.meval("Omega = Omega_next")
         stop = meng.meng.eval("stop")
         if stop:
             break
         else:
-            meng.meval("Omega = Omega_next")
             if visualize is not None:
                 X = polytope.Polytope(meng.mget("Omega.A"),meng.mget("Omega.b"))
                 visualize(X)
