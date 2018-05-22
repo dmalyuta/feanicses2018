@@ -8,6 +8,7 @@ import numpy as np
 import numpy.linalg as la
 import scipy.linalg as sla
 import cvxpy as cvx
+import matlab.engine
 
 import polytope
 
@@ -133,8 +134,8 @@ def generateTemplate(A,E,F,f):
         G[i,:] = G[i,:]/la.norm(G[i,:],2)
     return G
 
-def trodden(A,D,R,r,G=None,iterative=False,cv_tol=1e-8,max_iter=np.inf,
-            verbose=True):
+def minRPI(A,D,R,r,G=None,iterative=False,cv_tol=1e-8,max_iter=np.inf,
+           verbose=True):
     """
     Compute Minimal Robust Positively Invariant (RPI) set for the system
     
@@ -178,7 +179,7 @@ def trodden(A,D,R,r,G=None,iterative=False,cv_tol=1e-8,max_iter=np.inf,
            The minimal RPI set.
     """
     def raiseError(error_string):
-        raise AssertionError("[trodden] %s" % (error_string))
+        raise AssertionError("[minRPI] %s" % (error_string))
     
     n = A.shape[0]
     n_r = D.shape[1]
@@ -256,3 +257,149 @@ def trodden(A,D,R,r,G=None,iterative=False,cv_tol=1e-8,max_iter=np.inf,
         
     X = polytope.Polytope(G,g)
     return X
+
+class MatlabEngineInterface:
+    def __init__(self,meng):
+        self.meng = meng
+        
+    def mset(self,vars_matlab,vars_python):
+        """
+        Set matrices in MATLAB workspace.
+        
+        Parameters
+        ----------
+        vars_matlab : str or list(str)
+            A string or a list of strings for the variables to set in the MATLAB
+            workspace.
+        vars_python : list(array)
+            Numpy arrays that the MATLAB variables should be assigned to equal.
+        """
+        if type(vars_matlab) is not list:
+            vars_matlab = [vars_matlab]
+            vars_python = [vars_python]
+        for var_matlab,var_python in zip(vars_matlab,vars_python):
+            if len(var_python.shape)==1:
+                # Make column vectors out of 1D array
+                var_python = np.mat(var_python).T
+            self.meng.workspace[var_matlab] = matlab.double(var_python.tolist())
+        
+    def mget(self,var_matlab):
+        """
+        Retrieve an array from MATLAB workspace.
+        
+        Parameters
+        ----------
+        var_matlab : str
+            Variable name in MATLAB workspace that is to be retrieved.
+            
+        Returns
+        -------
+        var_python : array
+            Numpy array set to the value of the desired MATLAB workspace variable.
+        """
+        var_python = np.array(self.meng.eval("%s" % (var_matlab)))
+        return var_python
+
+    def meval(self,expr):
+        """
+        Evaluate expression given by expr in MATLAB.
+        
+        Parameters
+        ----------
+        expr : str
+            MATLAB expression to evaluate (just as you would type in the MATLAB
+            command prompt).
+        """
+        self.meng.eval(expr,nargout=0)
+    
+def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100):
+    """
+    Compute the Maximal Controlled Robust Positively Invariant (maxCRPI) set
+    for the specified system
+    
+        x+ = A*x+B*u+D*p
+        y = C*x
+    
+    and constraints
+    
+        y \in Y={y : G*y <= g}, u \in U={u : H*u <= h}, p \in P={p : R*p <= r}.
+    
+    Parameters
+    ----------
+    A : (n,n) array
+        System dynamics A matrix (zero-input dynamics).
+    B : (n,m) array
+        System dynamics B matrix (how input enters the system).
+    D : (n,d) array
+        System dynamics D matrix (how disturbance enters the system).
+    C : (p,n) array
+        Output selection matrix (which defines the quantities that we care to
+        keep invariant).
+    G : (n_g,n) array
+        Template of the safe outputs polytope.
+    g : (n_g) array
+        Facet distances of the safe outputs polytope.
+    H : (n_h,m) array
+        Template of the admissible inputs polytope.
+    h : (n_h) array
+        Facet distances of the admissible inputs polytope.
+    R : (n_r,d) array
+        Template of the tolerated disturbances polytope.
+    r : (n_r) array
+        Facet distances of the tolerated disturbances polytope.
+    meng : MatlabEngine, optional
+        Existing MATLAB engine, to save time and not start a new one every time
+        this function is called. If provided, **the existsing workspace is
+        cleared**.
+    max_iter : int, optional
+        Maximum number of iterations for the iterative algorithm.
+    
+    Returns
+    -------
+    maxCRPIset : Polytope
+        The maxCRPI polytope.
+    """
+    def raiseError(error_string):
+        raise AssertionError("[maxCRPI] %s" % (error_string))
+        
+    if meng is None:
+        meng = MatlabEngineInterface(matlab.engine.start_matlab())
+    else:
+        meng = MatlabEngineInterface(meng)
+        meng.meval("clear")
+        
+    # Nullspace of C (output selection matrix) as {x : nullC_A*x <= nullC_b}
+    # polytope
+    nullC_A = np.vstack((C,-C))
+    nullC_b = np.zeros((C.shape[0]*2))
+    pinvC = la.pinv(C) # Pseudoinverse of C
+    
+    # Setup workspace variables
+    meng.mset(['A','B','D','C'],[A,B,D,C])
+    meng.mset(['G','g','H','h','R','r'],[G,g,H,h,R,r])
+    meng.mset(['nullC_A','nullC_b','pinvC'],[nullC_A,nullC_b,pinvC])
+    
+    # Setup MPT3 polytopes
+    meng.meval("Y = Polyhedron(G,g)")
+    meng.meval("U = Polyhedron(H,h)")
+    meng.meval("P = Polyhedron(R,r)")
+    meng.meval("nullC = Polyhedron(nullC_A,nullC_b)")
+    
+    meng.meval("Omega = Y")
+    iter_count = 0
+    while True:
+        iter_count += 1
+        if iter_count > max_iter:
+            raiseError("Ran out of iterations")
+        print iter_count
+        meng.meval("pre = ((Y-((C*D)*P))+((-C*B)*U)+((-C*A)*nullC))*(C*A*pinvC)")
+        meng.meval("Omega_next = pre & Omega")
+        meng.meval("stop = Omega_next==Omega")
+        stop = meng.meng.eval("stop")
+        if stop:
+            break
+        else:
+            meng.meval("Omega = Omega_next")
+    
+    maxCRPIset = polytope.Polytope(meng.mget("Omega.A"),meng.mget("Omega.b"))
+    return maxCRPIset

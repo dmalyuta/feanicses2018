@@ -48,7 +48,7 @@ for A_cl in sys.A_cl:
 # Compute the invariant sets
 X = []
 for i in range(len(sys.A_cl)):
-    X.append(invariance_tools.trodden(sys.A_cl[i],sys.D,sys.R,sys.r,G=G[i]))
+    X.append(invariance_tools.minRPI(sys.A_cl[i],sys.D,sys.R,sys.r,G=G[i]))
 
 color = ['red','blue','green']
 fig = plt.figure(1,figsize=(7,4.5))

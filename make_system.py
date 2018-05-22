@@ -13,7 +13,6 @@ Author: Danylo Malyuta.
 import numpy as np
 import numpy.linalg as la
 import scipy.linalg as sla
-import scipy.io as sio
 from scipy.linalg import solve_discrete_are as dare
 import matplotlib
 import matplotlib.pyplot as plt
@@ -151,15 +150,19 @@ h = np.array([b_top,b_right,b_bottom,b_left])
 U = poly.Polytope(H,np.mat(h).T)
 
 if False:
-    fig= plt.figure()
+    fig= plt.figure(1)
+    plt.clf()
     ax = fig.add_subplot(111)
-    U.plot(ax,facecolor='none',edgecolor='black')
+    U.plot(ax,facecolor='none',edgecolor='red',linewidth=2)
     ax.axis('equal')
-    ax.set_xlabel('$T_x$')
-    ax.set_ylabel('$T_y$')
+    ax.set_xlabel('$T_x$ [N]')
+    ax.set_ylabel('$T_y$ [N]')
     ax.set_title('$\mathcal U$')
     plt.show()
     
+    fig.savefig('figures/feanicses_U_set.pdf',
+                bbox_inches='tight', format='pdf', transparent=True)
+
 # Construct safe states (outputs) polytope
 pos_err_max = (0.5,0.1) # [m] Max tolerated (horizontal,vertical) position error
 vel_err_max = (0.5,0.01) # [m/s] Max tolerated (horizontal,vertical) velocity error

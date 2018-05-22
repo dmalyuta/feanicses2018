@@ -31,8 +31,8 @@ iterative_options = [False,True]
 runtimes = []
 for i in range(len(iterative_options)):
     t = time.time()
-    X.append(invariance_tools.trodden(sys.A_cl[0],sys.D,sys.R,sys.r,
-                                      iterative=iterative_options[i]))
+    X.append(invariance_tools.minRPI(sys.A_cl[0],sys.D,sys.R,sys.r,
+                                     iterative=iterative_options[i]))
     elapsed = time.time()-t
     runtimes.append(elapsed)
 
