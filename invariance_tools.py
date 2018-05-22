@@ -404,7 +404,7 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=Non
         iter_count += 1
         if iter_count > max_iter:
             raiseError("Ran out of iterations")
-        meng.meval("pre = ((Omega-((C*D)*P))+((-C*B)*U)+((-C*A)*nullC))*(C*A*pinvC)")
+        meng.meval("pre = ((Omega-(((C*D)*P)+((C*A)*nullC)))+((-C*B)*U))*(C*A*pinvC)")
         meng.meval("Omega_next = pre & Omega")
         meng.meval("Omega_next_noredundant = Omega_next.minHRep")
         meng.meval("Omega_next = Omega_next.minHRep")
