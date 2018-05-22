@@ -80,6 +80,8 @@ B = M[0:n,n:]
 M = sla.expm(np.block([[A_c,D_c],[np.zeros((d,n)),np.zeros((d,d))]])*dt)
 D = M[0:n,n:]
 
+C = np.hstack((np.eye(4),np.zeros((4,1))))
+
 #%% Make a stabilizing LQR controller
 
 Dx = np.diag([1,1,0.05,0.05,0.1])
@@ -158,14 +160,14 @@ if False:
     ax.set_title('$\mathcal U$')
     plt.show()
     
-# Construct safe states polytope
+# Construct safe states (outputs) polytope
 pos_err_max = (0.5,0.1) # [m] Max tolerated (horizontal,vertical) position error
 vel_err_max = (0.5,0.01) # [m/s] Max tolerated (horizontal,vertical) velocity error
-X = poly.Polytope(R=[(-pos_err_max[0],pos_err_max[0]),
+Y = poly.Polytope(R=[(-pos_err_max[0],pos_err_max[0]),
                      (-pos_err_max[1],pos_err_max[1]),
                      (-vel_err_max[0],vel_err_max[0]),
                      (-vel_err_max[1],vel_err_max[1])])
-G,g = X.P, X.p
+G,g = Y.P, Y.p
 
 # Construct polytope of possible disturbances
 disturbance_max = (400,400) # [N] (horizontal,vertical) disturbance force
