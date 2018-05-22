@@ -323,6 +323,11 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100):
     and constraints
     
         y \in Y={y : G*y <= g}, u \in U={u : H*u <= h}, p \in P={p : R*p <= r}.
+        
+    Uses a modification of the algorithm presented in Seciton 4 of [1].
+    
+    [1] Kvasnica et al., "Reachability Analysis and Control Synthesis for
+    Uncertain Linear Systems in MPT", 2015.
     
     Parameters
     ----------
