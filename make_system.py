@@ -80,11 +80,6 @@ B = M[0:n,n:]
 M = sla.expm(np.block([[A_c,D_c],[np.zeros((d,n)),np.zeros((d,d))]])*dt)
 D = M[0:n,n:]
 
-# Output mapping matrix (y=C*x)
-# Defines the state combination that we actually care to keep invariant (used
-# in some methods, e.g. maxCRPI)
-C = sla.block_diag(np.eye(4),0.)
-
 #%% Make a stabilizing LQR controller
 
 Dx = np.diag([1,1,0.05,0.05,0.1])
@@ -164,17 +159,16 @@ if False:
     plt.show()
     
 # Construct safe states polytope
-pos_err_max = (1,0.1) # [m] Max tolerated (horizontal,vertical) position error
-vel_err_max = (0.1,0.01) # [m/s] Max tolerated (horizontal,vertical) velocity error
+pos_err_max = (0.5,0.1) # [m] Max tolerated (horizontal,vertical) position error
+vel_err_max = (0.5,0.01) # [m/s] Max tolerated (horizontal,vertical) velocity error
 X = poly.Polytope(R=[(-pos_err_max[0],pos_err_max[0]),
                      (-pos_err_max[1],pos_err_max[1]),
                      (-vel_err_max[0],vel_err_max[0]),
-                     (-vel_err_max[1],vel_err_max[1]),
-                     (0,0)])
+                     (-vel_err_max[1],vel_err_max[1])])
 G,g = X.P, X.p
 
 # Construct polytope of possible disturbances
-disturbance_max = (500,500) # [N] (horizontal,vertical) disturbance force
+disturbance_max = (400,400) # [N] (horizontal,vertical) disturbance force
 P = poly.Polytope(R=[(-disturbance_max[0],disturbance_max[0]),
                      (-disturbance_max[1],disturbance_max[1])])
 R,r = P.P, P.p

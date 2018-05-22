@@ -9,7 +9,6 @@ import numpy.linalg as la
 import scipy.linalg as sla
 import matlab.engine
 import matplotlib.pyplot as plt
-import scipy.io as sio
 
 import make_system as sys
 import polytope as poly
@@ -83,7 +82,10 @@ def meval(expr):
 
 #%% Compute maxCRPI set
 
-mset(['A','B','D','C'],[sys.A,sys.B,sys.D,sys.C])
+# We do not care about mass invariance, thus we remove the mass part of the
+# system dynamics be relying on the fact that in the A matrix, the mass
+# dynamics are decoupled from the x,y dynamics
+mset(['A','B','D'],[sys.A[:4,:4],sys.B[:4,:],sys.D[:4,:]])
 mset(['G','g','H','h','R','r'],[sys.G,sys.g,sys.H,sys.h,sys.R,sys.r])
 
 meval("X = Polyhedron(G,g)")
@@ -94,7 +96,7 @@ iter_count = 0
 while True:
     iter_count += 1
     print iter_count
-    meval("pre = ((X-(C*D*P))+(-C*B*U))*C*A")
+    meval("pre = ((X-(D*P))+(-B*U))*A")
     meval("Omega_next = pre & Omega")
     meval("stop = Omega_next==Omega")
     stop = meng.eval("stop")
@@ -103,9 +105,28 @@ while True:
     else:
         meval("Omega = Omega_next")
 X_inf = poly.Polytope(mget("Omega.A"),mget("Omega.b"))
-sio.savemat('X_inf.mat',{'A':mget("Omega.A"),'b':mget("Omega.b")})
 
-fig = plt.figure()
-ax= fig.add_subplot(111)
-X_inf.plot(ax,coords=[0,1])
+color = ['red','blue','green']
+linestyles = ['-','--',':']
+fig = plt.figure(1,figsize=(7,4.5))
+plt.clf()
+ax = fig.add_subplot(221)
+X_inf.plot(ax,coords=[0,1],facecolor='none',edgecolor='red',linewidth=2)
+ax.set_xlabel('$x$ position [m]')
+ax.set_ylabel('$y$ position [m]')
+ax = fig.add_subplot(224)
+X_inf.plot(ax,coords=[2,3],facecolor='none',edgecolor='red',linewidth=2)
+ax.set_xlabel('$v_x$ velocity [m/s]')
+ax.set_ylabel('$v_y$ velocity [m/s]')
+ax = fig.add_subplot(222)
+X_inf.plot(ax,coords=[0,2],facecolor='none',edgecolor='red',linewidth=2)
+ax.set_xlabel('$x$ position [m]')
+ax.set_ylabel('$v_x$ velocity [m/s]')
+ax = fig.add_subplot(223)
+X_inf.plot(ax,coords=[1,3],facecolor='none',edgecolor='red',linewidth=2)
+ax.set_xlabel('$y$ position [m]')
+ax.set_ylabel('$v_y$ velocity [m/s]')
+plt.tight_layout()
 plt.show()
+
+fig.savefig('figures/maxcrpi.pdf', bbox_inches='tight', format='pdf', transparent=True)
