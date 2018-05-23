@@ -174,7 +174,7 @@ Y = poly.Polytope(R=[(-pos_err_max[0],pos_err_max[0]),
 G,g = Y.P, Y.p
 
 # Construct polytope of possible disturbances
-disturbance_max = (400,400) # [N] (horizontal,vertical) disturbance force
+disturbance_max = (5,5) # [N] (horizontal,vertical) disturbance force
 P = poly.Polytope(R=[(-disturbance_max[0],disturbance_max[0]),
                      (-disturbance_max[1],disturbance_max[1])])
 R,r = P.P, P.p

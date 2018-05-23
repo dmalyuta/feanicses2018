@@ -8,6 +8,7 @@ import numpy as np
 import numpy.linalg as la
 import matplotlib
 import matplotlib.pyplot as plt
+import cvxpy as cvx
 
 import make_system as sys
 import controllers as ctrl
@@ -19,17 +20,25 @@ np.random.seed(101)
 
 #%% Create controllers
 
-# LQR controller
-n,m = sys.B.shape
-# Unscaled weights
-Iq = np.eye(n)
-Iq[-1,-1] = 0.
-Qhat = Iq
-Rhat = np.eye(m)
-# Scaled weights
-Q = la.inv(sys.Dx.T).dot(Qhat).dot(la.inv(sys.Dx))
-R = la.inv(sys.Du.T).dot(Rhat).dot(la.inv(sys.Du))
-mu = ctrl.LQR(sys.A,sys.B,Q,R)
+controller_type = 'lfs'
+
+if controller_type == 'lqr':
+    # LQR controller
+    n,m = sys.B.shape
+    # Unscaled weights
+    Iq = np.eye(n)
+    Iq[-1,-1] = 0.
+    Qhat = Iq
+    Rhat = np.eye(m)
+    # Scaled weights
+    Q = la.inv(sys.Dx.T).dot(Qhat).dot(la.inv(sys.Dx))
+    R = la.inv(sys.Du.T).dot(Rhat).dot(la.inv(sys.Du))
+    mu = ctrl.LQR(sys.A,sys.B,Q,R)
+elif controller_type == 'lfs':
+    # Linear From Specifications controller
+    mu = ctrl.LFS(sys.A,sys.B,sys.C,sys.D,sys.G,sys.g,sys.H,sys.h,sys.R,sys.r)
+else:
+    raise AssertionError("Unknown controller type (%s)" % (controller_type))
 
 #%% Simulate the closed-loop system
 
@@ -94,6 +103,9 @@ ax.set_ylabel('$v_y$ velocity [m/s]')
 plt.tight_layout()
 plt.show()
 
+fig.savefig(('figures/feanicses_controller_states_%s.pdf'%(controller_type)),
+            bbox_inches='tight', format='pdf', transparent=True)
+
 # Inputs
 fig= plt.figure(2)
 plt.clf()
@@ -106,8 +118,8 @@ ax.set_ylabel('$T_y$ [N]')
 ax.set_title('$\mathcal U$')
 plt.show()
 
-#fig.savefig('figures/feanicses_U_set.pdf',
-#            bbox_inches='tight', format='pdf', transparent=True)
+fig.savefig(('figures/feanicses_controller_inputs_%s.pdf'%(controller_type)),
+            bbox_inches='tight', format='pdf', transparent=True)
 
 # Disturbances
 fig= plt.figure(3)
