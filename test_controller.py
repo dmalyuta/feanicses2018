@@ -12,6 +12,8 @@ import cvxpy as cvx
 
 import make_system as sys
 import controllers as ctrl
+import invariance_tools
+import polytope as poly
 
 matplotlib.rcParams.update({'font.size': 13})
 matplotlib.rc('text', usetex=True)
@@ -36,7 +38,17 @@ if controller_type == 'lqr':
     mu = ctrl.LQR(sys.A,sys.B,Q,R)
 elif controller_type == 'lfs':
     # Linear From Specifications controller
-    mu = ctrl.LFS(sys.A,sys.B,sys.C,sys.D,sys.G,sys.g,sys.H,sys.h,sys.R,sys.r)
+    X_invar = invariance_tools.minRPI(sys.A_cl[0],sys.D,sys.R,sys.r,verbose=False)
+    G,g = X_invar.P[:,:4], X_invar.p # Does not work with sys.G, sys.g
+    mu = ctrl.LFS(sys.A,sys.B,sys.C,sys.D,G,g,sys.H,sys.h,sys.R,sys.r)
+    
+    fig= plt.figure(10)
+    plt.clf()
+    ax = fig.add_subplot(111)
+    U_orig = poly.Polytope(sys.H,np.mat(sys.h).T)
+    U_now = poly.Polytope(sys.H,np.mat(sys.h).T+mu.s)
+    U_orig.plot(ax,facecolor='none',edgecolor='black')
+    U_now.plot(ax,facecolor='none',edgecolor='blue')
 else:
     raise AssertionError("Unknown controller type (%s)" % (controller_type))
 

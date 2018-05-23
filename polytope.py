@@ -242,7 +242,7 @@ class Polytope:
             constraints.append(
                          self.P[i]*x_c+la.norm(self.P[i])*R_c <= self.p[i])
         pbm = cvx.Problem(cost, constraints)
-        R_c_star = pbm.solve()
+        R_c_star = pbm.solve(solver=cvx.GUROBI)
         return R_c_star, x_c.value
 
     def isEmpty(self):

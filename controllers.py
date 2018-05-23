@@ -43,16 +43,28 @@ class LFS(Controller):
         S = cvx.Variable(h.size,p)
         K = cvx.Variable(m,n)
         pinvC = la.pinv(C)
+        s = cvx.Variable(h.size)
         
         cost = cvx.Minimize(0)
+# =============================================================================
+#         constraints = [N*g+M*r <= g, #+s,
+#                N*G == G.dot(A)+G.dot(B)*K,
+#                #L*C == G.dot(A)+G.dot(B)*K,
+#                M*R == G.dot(D),
+#     #                       Q*g <= h,
+#     #                       Q*G == H*K*pinvC,
+#     #                       S*C == H*K,
+#     #                       Q>=0,
+#                N>=0, M>=0]
+# =============================================================================
         constraints = [N*g+M*r <= g,
                        N*G == G.dot(C).dot(A).dot(pinvC)+G.dot(C).dot(B)*K*pinvC,
                        L*C == G.dot(C).dot(A)+G.dot(C).dot(B)*K,
                        M*R == G.dot(C).dot(D),
-#                       Q*g <= h,
-#                       Q*G == H*K*pinvC,
-#                       S*C == H*K,
-#                       Q>=0,
+                       Q*g <= h,
+                       Q*G == H*K*pinvC,
+                       S*C == H*K,
+                       Q>=0,
                        N>=0, M>=0]
                        
         problem = cvx.Problem(cost, constraints)
@@ -62,6 +74,7 @@ class LFS(Controller):
             # constraints and uncertainty set specifications cannot render the
             # state constraint set {x : G*x<=g} invariant.
             raise AssertionError("LP infeasible")
+        self.s = s.value
         self.K = np.asarray(K.value)
         
     def oneStep(self,x):
