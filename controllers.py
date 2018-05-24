@@ -10,6 +10,31 @@ import scipy.linalg as sla
 from scipy.linalg import solve_discrete_are as dare
 import cvxpy as cvx
 
+import polytope as poly
+
+def computeScalingMatrix(P,p):
+    """
+    Computes a scaling matrix D such that D*xhat=x where x is the
+    original variable and xhat is the scaled one, ranging in [-1,1].
+    Done for the polytope {x : P*x<=p}.
+    
+    Parameters
+    ----------
+    P : (m,n) array
+        Polytope facet normals.
+    p : (m) array
+        Polytope facet distances.
+        
+    Returns
+    -------
+    D : (n,n) array
+        The scaling matrix such that D*xhat=x.
+    """
+    l,u = poly.Polytope(P=P,p=p).boundingBox()
+    d = np.maximum(np.abs(l),np.abs(u))
+    D = np.diag(d)
+    return D
+
 class Controller:
     def __init__(self,*args,**kwargs):
         self.setup(*args,**kwargs)
@@ -33,6 +58,9 @@ class LQR(Controller):
     
 class OnlineController(Controller):
     def setup(self,A,B,D,G,g,H,h,R,r,verbose=True):
+        # Scaling matrices
+        self.D_u = computeScalingMatrix(H,np.mat(h).T)
+        
         self.A = A
         self.B = B
         self.D = D
@@ -51,9 +79,9 @@ class OnlineController(Controller):
         relax = cvx.Variable(self.g.size)
         
         cost = cvx.Minimize(cvx.norm(u,2))
-        constraints = [Y*self.r+self.G.dot(self.B)*u+self.G.dot(self.A).dot(x)<=self.g,
+        constraints = [Y*self.r+self.G.dot(self.B).dot(self.D_u)*u+self.G.dot(self.A).dot(x)<=self.g,
                        Y*self.R == self.G.dot(self.D),
-                       self.H*u <= self.h,
+                       self.H.dot(self.D_u)*u <= self.h,
                        Y>=0]
 
         problem = cvx.Problem(cost, constraints)
@@ -63,5 +91,5 @@ class OnlineController(Controller):
             # constraints and uncertainty set specifications cannot render the
             # state constraint set {x : G*x<=g} invariant.
             raise AssertionError("LP infeasible")
-        u = np.array(u.value).flatten()
+        u = self.D_u.dot(np.array(u.value).flatten())
         return u

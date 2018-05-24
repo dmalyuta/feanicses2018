@@ -18,7 +18,7 @@ import polytope as poly
 matplotlib.rcParams.update({'font.size': 13})
 matplotlib.rc('text', usetex=True)
 
-np.random.seed(102)
+np.random.seed(101)
 
 #%% Create controllers
 
