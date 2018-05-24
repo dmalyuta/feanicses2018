@@ -32,49 +32,46 @@ class LQR(Controller):
         return self.K.dot(x)
     
 class LFS(Controller):
-    def setup(self,A,B,C,D,G,g,H,h,R,r,verbose=True):
+    def setup(self,A,B,D,G,g,H,h,R,r,verbose=True):
         # Solve optimization problem
-        n,m = B.shape
-        p = C.shape[0]
-        N = cvx.Variable(g.size,g.size)
-        M = cvx.Variable(g.size,r.size)
-        L = cvx.Variable(g.size,p)
-        Q = cvx.Variable(h.size,g.size)
-        S = cvx.Variable(h.size,p)
-        K = cvx.Variable(m,n)
-        pinvC = la.pinv(C)
-        s = cvx.Variable(h.size)
+        g = np.copy(g)
+        iter_count = 0
+        while True:
+            iter_count += 1
+            if iter_count > 1:
+                q_prev = q.value
+            n,m = B.shape
+            N = cvx.Variable(g.size,g.size)
+            M = cvx.Variable(g.size,r.size)
+            Q = cvx.Variable(h.size,g.size)
+            K = cvx.Variable(m,n)
+            q = cvx.Variable(g.size)
+            s = cvx.Variable(h.size)
         
-        cost = cvx.Minimize(0)
-# =============================================================================
-#         constraints = [N*g+M*r <= g, #+s,
-#                N*G == G.dot(A)+G.dot(B)*K,
-#                #L*C == G.dot(A)+G.dot(B)*K,
-#                M*R == G.dot(D),
-#     #                       Q*g <= h,
-#     #                       Q*G == H*K*pinvC,
-#     #                       S*C == H*K,
-#     #                       Q>=0,
-#                N>=0, M>=0]
-# =============================================================================
-        constraints = [N*g+M*r <= g,
-                       N*G == G.dot(C).dot(A).dot(pinvC)+G.dot(C).dot(B)*K*pinvC,
-                       L*C == G.dot(C).dot(A)+G.dot(C).dot(B)*K,
-                       M*R == G.dot(C).dot(D),
-                       Q*g <= h,
-                       Q*G == H*K*pinvC,
-                       S*C == H*K,
-                       Q>=0,
-                       N>=0, M>=0]
-                       
-        problem = cvx.Problem(cost, constraints)
-        optimal_value = problem.solve(solver=cvx.GUROBI, verbose=verbose)
-        if optimal_value == np.inf:
-            # This most likely means that a linear control law given the input
-            # constraints and uncertainty set specifications cannot render the
-            # state constraint set {x : G*x<=g} invariant.
-            raise AssertionError("LP infeasible")
+            cost = cvx.Minimize(cvx.norm(q,'inf')+cvx.norm(s,'inf'))
+            constraints = [N*g+M*r <= g+q,
+                           N*G == G.dot(A)+G.dot(B)*K,
+                           M*R == G.dot(D),
+                           Q*g <= h+s,
+                           Q*G == H*K,
+                           Q>=0,
+                           N>=0, M>=0]
+                           
+            problem = cvx.Problem(cost, constraints)
+            optimal_value = problem.solve(solver=cvx.GUROBI, verbose=False) #verbose)
+            if optimal_value == np.inf:
+                # This most likely means that a linear control law given the input
+                # constraints and uncertainty set specifications cannot render the
+                # state constraint set {x : G*x<=g} invariant.
+                raise AssertionError("LP infeasible")
+               
+            print la.norm(q.value,ord=np.inf)
+            if la.norm(q.value,ord=np.inf) < 1e-5:
+                break
+            else:
+                g += q.value
         self.s = s.value
+        self.q = q.value
         self.K = np.asarray(K.value)
         
     def oneStep(self,x):
