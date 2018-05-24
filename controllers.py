@@ -48,15 +48,14 @@ class OnlineController(Controller):
         n,m = self.B.shape
         Y = cvx.Variable(self.g.size,self.r.size)
         u = cvx.Variable(m)
-    
+        relax = cvx.Variable(self.g.size)
+        
         cost = cvx.Minimize(cvx.norm(u,2))
-        constraints = [Y*self.r+self.G.dot(self.B)*u+self.G.dot(self.A).dot(x) <= self.g,
+        constraints = [Y*self.r+self.G.dot(self.B)*u+self.G.dot(self.A).dot(x)<=self.g,
                        Y*self.R == self.G.dot(self.D),
-#                       Q*g <= h+s,
-#                       Q*G == H*K,
-#                       Q>=0,
+                       self.H*u <= self.h,
                        Y>=0]
-                       
+
         problem = cvx.Problem(cost, constraints)
         optimal_value = problem.solve(solver=cvx.GUROBI, verbose=self.verbose)
         if optimal_value == np.inf:

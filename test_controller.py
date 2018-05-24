@@ -18,7 +18,7 @@ import polytope as poly
 matplotlib.rcParams.update({'font.size': 13})
 matplotlib.rc('text', usetex=True)
 
-np.random.seed(101)
+np.random.seed(102)
 
 #%% Create controllers
 
@@ -46,6 +46,11 @@ elif controller_type == 'online':
     else:
         meng.eval("clear",nargout=0)
         
+    # Reason for ":4" here and below: consider only the (x,y,v_x,v_y) part of
+    # the state, i.e. ignore the mass. Reason for this: don't care about
+    # keeping the mass invariant, so ignore it in control by leveraging the
+    # fact that mass dynamics and (x,y,v_x,v_y) dynamics are decoupled in the
+    # linearized system.
     X_inf = invariance_tools.maxCRPI(sys.A[:4,:4],sys.B[:4,:],sys.D[:4,:],
                                      sys.G,sys.g,sys.H,sys.h,sys.R,sys.r,
                                      meng=meng)
@@ -77,10 +82,10 @@ class SimulationOutput:
         self.x = np.vstack(self.x)
         self.u = np.vstack(self.u)
         self.p = np.vstack(self.p)
-        
+
 sim_history = SimulationOutput()
-T = 10. # [s] Simulation run-time
-t, x = 0., np.zeros((n))
+T = 100. # [s] Simulation run-time
+t, x = 0., X_inf.randomPoint()[:4]
 while t <= T:
     x_prev = np.copy(x)
     p = np.random.uniform(low=-np.array(sys.disturbance_max),
@@ -89,7 +94,7 @@ while t <= T:
         u = mu(x)
     elif controller_type == 'online':
         u = mu(x[:4])
-    x = sys.A.dot(x)+sys.B.dot(u)+sys.D.dot(p)
+    x = sys.A[:4,:4].dot(x)+sys.B[:4].dot(u)+sys.D[:4].dot(p)
     sim_history.add(t,x_prev,u,p)
     t += sys.dt
 sim_history.concatenate()
@@ -130,7 +135,7 @@ fig= plt.figure(2)
 plt.clf()
 ax = fig.add_subplot(111)
 sys.U.plot(ax,facecolor='none',edgecolor='red',linewidth=2)
-ax.plot(sim_history.u[:,0],sim_history.u[:,1],marker='x',linestyle='none')
+ax.plot(sim_history.u[:,0],sim_history.u[:,1],marker='x',color='black',linestyle='none')
 ax.axis('equal')
 ax.set_xlabel('$T_x$ [N]')
 ax.set_ylabel('$T_y$ [N]')
