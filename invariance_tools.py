@@ -313,19 +313,18 @@ class MatlabEngineInterface:
         """
         self.meng.eval(expr,nargout=0)
     
-def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=None):
+def maxCRPI(A,B,D,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=None):
     """
     Compute the Maximal Controlled Robust Positively Invariant (maxCRPI) set
     for the specified system
     
         x+ = A*x+B*u+D*p
-        y = C*x
     
     and constraints
     
-        y \in Y={y : G*y <= g}, u \in U={u : H*u <= h}, p \in P={p : R*p <= r}.
-        
-    Uses a modification of the algorithm presented in Seciton 4 of [1].
+        x \in X={x : G*x <= g}, u \in U={u : H*u <= h}, p \in P={p : R*p <= r}.
+
+    Uses approximately the algorithm presented in Section 4 of [1].
     
     [1] Kvasnica et al., "Reachability Analysis and Control Synthesis for
     Uncertain Linear Systems in MPT", 2015.
@@ -338,9 +337,6 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=Non
         System dynamics B matrix (how input enters the system).
     D : (n,d) array
         System dynamics D matrix (how disturbance enters the system).
-    C : (p,n) array
-        Output selection matrix (which defines the quantities that we care to
-        keep invariant).
     G : (n_g,n) array
         Template of the safe outputs polytope.
     g : (n_g) array
@@ -379,24 +375,16 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=Non
     else:
         meng = MatlabEngineInterface(meng)
         meng.meval("clear")
-        
-    # Nullspace of C (output selection matrix) as {x : nullC_A*x <= nullC_b}
-    # polytope
-    nullC_A = np.vstack((C,-C))
-    nullC_b = np.zeros((C.shape[0]*2))
-    pinvC = la.pinv(C) # Pseudoinverse of C
     
     # Setup workspace variables
-    meng.mset(['A','B','D','C'],[A,B,D,C])
+    meng.mset(['A','B','D'],[A,B,D])
     meng.mset(['G','g','H','h','R','r'],[G,g,H,h,R,r])
-    meng.mset(['nullC_A','nullC_b','pinvC'],[nullC_A,nullC_b,pinvC])
     meng.meng.workspace["cv_tol"] = cv_tol
     
     # Setup MPT3 polytopes
     meng.meval("Y = Polyhedron(G,g)")
     meng.meval("U = Polyhedron(H,h)")
     meng.meval("P = Polyhedron(R,r)")
-    meng.meval("nullC = Polyhedron(nullC_A,nullC_b)")
     
     meng.meval("Omega = Y")
     iter_count = 0
@@ -404,12 +392,12 @@ def maxCRPI(A,B,D,C,G,g,H,h,R,r,meng=None,max_iter=100,cv_tol=1e-3,visualize=Non
         iter_count += 1
         if iter_count > max_iter:
             raiseError("Ran out of iterations")
-        meng.meval("pre = ((Omega-(((C*D)*P)+((C*A)*nullC)))+((-C*B)*U))*(C*A*pinvC)")
+        meng.meval("pre = ((Omega-(D*P))+(-B*U))*A")
         meng.meval("Omega_next = pre & Omega")
         meng.meval("Omega_next = Omega_next.minHRep")
         num_facets = int(meng.meng.eval("size(Omega_next.A,1)"))
         print "%d: %d" % (iter_count, num_facets)
-        meng.meval("stop = Polyhedron(Omega_next.A,Omega_next.b+cv_tol).contains(Omega) && "
+        meng.meval("stop = Polyhedron(Omega_next.A,Omega_next.b+cv_tol).contains(Omega); "
                    "Polyhedron(Omega.A,Omega.b+cv_tol).contains(Omega_next)")
         meng.meval("Omega = Omega_next")
         stop = meng.meng.eval("stop")

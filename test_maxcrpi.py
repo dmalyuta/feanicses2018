@@ -53,7 +53,7 @@ def visualize(X):
     return fig
 
 # Compute maxCRPI set
-X_inf = invariance_tools.maxCRPI(sys.A,sys.B,sys.D,sys.C,
+X_inf = invariance_tools.maxCRPI(sys.A[:4,:4],sys.B[:4,:],sys.D[:4,:],
                                  sys.G,sys.g,sys.H,sys.h,sys.R,sys.r,
                                  meng=meng,visualize=visualize)
 

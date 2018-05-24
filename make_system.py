@@ -79,8 +79,6 @@ B = M[0:n,n:]
 M = sla.expm(np.block([[A_c,D_c],[np.zeros((d,n)),np.zeros((d,d))]])*dt)
 D = M[0:n,n:]
 
-C = np.hstack((np.eye(4),np.zeros((4,1))))
-
 #%% Make a stabilizing LQR controller
 
 Dx = np.diag([1,1,0.05,0.05,0.1])
@@ -174,7 +172,7 @@ Y = poly.Polytope(R=[(-pos_err_max[0],pos_err_max[0]),
 G,g = Y.P, Y.p
 
 # Construct polytope of possible disturbances
-disturbance_max = (5,5) # [N] (horizontal,vertical) disturbance force
+disturbance_max = (300,300) # [N] (horizontal,vertical) disturbance force
 P = poly.Polytope(R=[(-disturbance_max[0],disturbance_max[0]),
                      (-disturbance_max[1],disturbance_max[1])])
 R,r = P.P, P.p
